@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WC 2026 Predictions</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --green: #00c853; --gold: #ffd600; --dark: #0a0e1a;
+    --dark2: #111827; --dark3: #1c2535; --card: #1e2d40;
+    --border: rgba(255,255,255,0.08); --text: #e8eaf0;
+    --muted: #8892a4; --red: #ff4444;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--dark); color:var(--text); font-family:'Outfit',sans-serif; min-height:100vh;
+    background-image: radial-gradient(ellipse at 20% 0%,rgba(0,200,83,.08) 0%,transparent 50%),
+                      radial-gradient(ellipse at 80% 100%,rgba(255,214,0,.06) 0%,transparent 50%); }
+
+  /* HEADER */
+  header { background:rgba(10,14,26,.95); backdrop-filter:blur(20px); border-bottom:1px solid var(--border);
+    padding:0 24px; position:sticky; top:0; z-index:100; display:flex; align-items:center;
+    justify-content:space-between; height:64px; }
+  .logo { font-family:'Bebas Neue',sans-serif; font-size:1.6rem; letter-spacing:2px;
+    background:linear-gradient(90deg,var(--green),var(--gold)); -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent; background-clip:text; }
+  .header-right { display:flex; align-items:center; gap:12px; }
+  .user-badge { background:var(--dark3); border:1px solid var(--border); border-radius:8px;
+    padding:6px 14px; font-size:.85rem; color:var(--green); font-weight:600; }
+
+  /* BUTTONS */
+  .btn { padding:8px 20px; border-radius:8px; border:none; cursor:pointer; font-family:'Outfit',sans-serif;
+    font-weight:600; font-size:.9rem; transition:all .2s; }
+  .btn-primary { background:var(--green); color:#000; }
+  .btn-primary:hover { background:#00e060; transform:translateY(-1px); }
+  .btn-outline { background:transparent; color:var(--text); border:1px solid var(--border); }
+  .btn-outline:hover { border-color:var(--green); color:var(--green); }
+  .btn-danger { background:transparent; color:var(--red); border:1px solid rgba(255,68,68,.3); }
+  .btn-danger:hover { background:rgba(255,68,68,.1); }
+  .btn-small { padding:5px 14px; font-size:.8rem; }
+  .btn-gold { background:var(--gold); color:#000; }
+  .btn-gold:hover { background:#ffe033; }
+
+  /* NAV */
+  .nav-tabs { display:flex; gap:4px; background:var(--dark2); border-bottom:1px solid var(--border);
+    padding:0 24px; overflow-x:auto; }
+  .nav-tab { padding:14px 20px; cursor:pointer; font-size:.9rem; font-weight:500; color:var(--muted);
+    border-bottom:2px solid transparent; white-space:nowrap; transition:all .2s; }
+  .nav-tab:hover { color:var(--text); }
+  .nav-tab.active { color:var(--green); border-bottom-color:var(--green); }
+
+  /* MAIN */
+  main { max-width:900px; margin:0 auto; padding:32px 16px; }
+
+  /* AUTH */
+  .auth-page { min-height:80vh; display:flex; align-items:center; justify-content:center; }
+  .auth-card { background:var(--card); border:1px solid var(--border); border-radius:16px;
+    padding:40px; width:100%; max-width:420px; }
+  .auth-title { font-family:'Bebas Neue',sans-serif; font-size:2rem; letter-spacing:2px;
+    margin-bottom:8px; text-align:center; }
+  .auth-subtitle { color:var(--muted); text-align:center; font-size:.9rem; margin-bottom:32px; }
+  .form-group { margin-bottom:16px; }
+  .form-group label { display:block; font-size:.85rem; font-weight:500; color:var(--muted); margin-bottom:6px; }
+  .form-group input { width:100%; background:var(--dark2); border:1px solid var(--border); border-radius:8px;
+    padding:10px 14px; color:var(--text); font-family:'Outfit',sans-serif; font-size:.95rem;
+    transition:border-color .2s; outline:none; }
+  .form-group input:focus { border-color:var(--green); }
+  .form-group input::placeholder { color:var(--muted); }
+  .auth-switch { text-align:center; margin-top:20px; font-size:.85rem; color:var(--muted); }
+  .auth-switch a { color:var(--green); cursor:pointer; font-weight:600; }
+  .error-msg { background:rgba(255,68,68,.1); border:1px solid rgba(255,68,68,.3); color:var(--red);
+    padding:10px 14px; border-radius:8px; font-size:.85rem; margin-bottom:16px; display:none; }
+
+  /* SECTIONS */
+  .section-title { font-family:'Bebas Neue',sans-serif; font-size:1.8rem; letter-spacing:2px; margin-bottom:8px; }
+  .section-subtitle { color:var(--muted); font-size:.9rem; margin-bottom:24px; }
+  .group-header { font-family:'Bebas Neue',sans-serif; font-size:1.1rem; letter-spacing:3px; color:var(--gold);
+    margin:28px 0 12px; padding-bottom:8px; border-bottom:1px solid var(--border); }
+
+  /* MATCH CARDS */
+  .match-card { background:var(--card); border:1px solid var(--border); border-radius:12px;
+    padding:16px 20px; margin-bottom:10px; transition:border-color .2s; }
+  .match-card:hover { border-color:rgba(0,200,83,.2); }
+  .match-card.saved { border-color:rgba(0,200,83,.4); }
+  .match-card.locked { border-color:rgba(255,214,0,.2); }
+  .match-card.finished { opacity:.85; }
+
+  .match-main { display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:12px; }
+  .team { font-weight:600; font-size:.95rem; }
+  .team.home { text-align:right; }
+  .team.away { text-align:left; }
+  .team-flag { font-size:1.1rem; }
+
+  .match-center { display:flex; flex-direction:column; align-items:center; gap:8px; min-width:150px; }
+  .match-date { font-size:.72rem; color:var(--muted); text-align:center; }
+  .score-inputs { display:flex; align-items:center; gap:8px; }
+  .score-input { width:44px; height:44px; background:var(--dark2); border:1px solid var(--border);
+    border-radius:8px; color:var(--text); font-family:'Bebas Neue',sans-serif; font-size:1.4rem;
+    text-align:center; outline:none; transition:border-color .2s; }
+  .score-input:focus { border-color:var(--green); }
+  .score-sep { font-family:'Bebas Neue',sans-serif; font-size:1.4rem; color:var(--muted); }
+  .real-score { font-family:'Bebas Neue',sans-serif; font-size:1.6rem; color:var(--gold); }
+  .points-badge { font-size:.75rem; font-weight:700; padding:2px 8px; border-radius:20px;
+    background:rgba(0,200,83,.15); color:var(--green); }
+  .points-badge.exact { background:rgba(255,214,0,.15); color:var(--gold); }
+  .points-badge.zero { background:rgba(255,68,68,.1); color:var(--red); }
+  .save-btn { width:100%; padding:6px; margin-top:4px; font-size:.8rem; }
+
+  /* STATS BAR */
+  .match-stats { margin-top:12px; padding-top:12px; border-top:1px solid var(--border); }
+  .stats-bar-wrap { display:flex; gap:2px; border-radius:6px; overflow:hidden; height:8px; margin-bottom:6px; }
+  .stats-bar-home { background:var(--green); transition:width .5s; }
+  .stats-bar-draw { background:var(--gold); transition:width .5s; }
+  .stats-bar-away { background:var(--red); transition:width .5s; }
+  .stats-labels { display:flex; justify-content:space-between; font-size:.72rem; color:var(--muted); }
+  .stats-label { display:flex; flex-direction:column; align-items:center; gap:2px; }
+  .stats-pct { font-weight:700; font-size:.8rem; }
+  .stats-pct.home-pct { color:var(--green); }
+  .stats-pct.draw-pct { color:var(--gold); }
+  .stats-pct.away-pct { color:var(--red); }
+  .stats-no-preds { font-size:.72rem; color:var(--muted); font-style:italic; text-align:center; margin-top:8px; }
+
+  /* HERO */
+  .hero { background:var(--card); border:1px solid var(--border); border-radius:16px;
+    padding:28px; margin-bottom:28px; display:flex; align-items:center; justify-content:space-between; gap:20px; }
+  .hero-text h2 { font-family:'Bebas Neue',sans-serif; font-size:1.6rem; letter-spacing:2px; margin-bottom:4px; }
+  .hero-text p { color:var(--muted); font-size:.9rem; }
+  .hero-stats { display:flex; gap:24px; }
+  .hero-stat { text-align:center; }
+  .hero-stat-value { font-family:'Bebas Neue',sans-serif; font-size:2rem; color:var(--gold); line-height:1; }
+  .hero-stat-label { font-size:.75rem; color:var(--muted); margin-top:2px; }
+  .hint { font-size:.8rem; color:var(--muted); margin-bottom:20px; background:var(--dark2);
+    padding:10px 14px; border-radius:8px; border-left:3px solid var(--gold); }
+
+  /* LEADERBOARD */
+  .leaderboard-table { background:var(--card); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+  .lb-row { display:grid; grid-template-columns:48px 1fr auto; align-items:center;
+    padding:14px 20px; border-bottom:1px solid var(--border); transition:background .2s; }
+  .lb-row:last-child { border-bottom:none; }
+  .lb-row:hover { background:rgba(255,255,255,.02); }
+  .lb-row.header { font-size:.75rem; font-weight:600; color:var(--muted); text-transform:uppercase;
+    letter-spacing:1px; background:var(--dark2); }
+  .lb-rank { font-family:'Bebas Neue',sans-serif; font-size:1.2rem; color:var(--muted); }
+  .lb-rank.top1 { color:var(--gold); } .lb-rank.top2 { color:#c0c0c0; } .lb-rank.top3 { color:#cd7f32; }
+  .lb-name { font-weight:600; } .lb-name.me { color:var(--green); }
+  .lb-points { font-family:'Bebas Neue',sans-serif; font-size:1.4rem; color:var(--gold); }
+
+  /* RULES */
+  .rules-card { background:var(--card); border:1px solid var(--border); border-radius:16px;
+    padding:28px; display:flex; flex-direction:column; gap:16px; }
+  .rules-block { display:flex; align-items:flex-start; gap:16px; }
+  .rules-icon { font-size:1.6rem; width:36px; flex-shrink:0; text-align:center; }
+  .rules-label { font-weight:700; font-size:1rem; margin-bottom:4px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .rules-desc { color:var(--muted); font-size:.9rem; line-height:1.5; }
+  .rules-divider { font-family:'Bebas Neue',sans-serif; letter-spacing:3px; font-size:.9rem; color:var(--gold);
+    border-top:1px solid var(--border); padding-top:16px; margin-top:4px; }
+  .points-pill { font-size:.75rem; font-weight:700; padding:2px 10px; border-radius:20px; display:inline-block; }
+  .points-pill.gold { background:rgba(255,214,0,.15); color:var(--gold); }
+  .points-pill.green { background:rgba(0,200,83,.15); color:var(--green); }
+  .points-pill.red { background:rgba(255,68,68,.1); color:var(--red); }
+  .rules-example { background:var(--dark2); border-radius:10px; padding:16px; display:flex; flex-direction:column; gap:10px; }
+  .example-row { display:flex; justify-content:space-between; align-items:center; font-size:.9rem; color:var(--muted); }
+
+  /* ADMIN */
+  .admin-match-card { background:var(--card); border:1px solid var(--border); border-radius:12px;
+    padding:16px 20px; margin-bottom:10px; display:grid; grid-template-columns:1fr auto;
+    align-items:center; gap:16px; }
+  .admin-match-info { font-weight:600; }
+  .admin-match-date { font-size:.8rem; color:var(--muted); margin-top:2px; }
+  .admin-score-form { display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+  .finished-badge { font-size:.75rem; font-weight:700; padding:3px 10px; border-radius:20px;
+    background:rgba(0,200,83,.15); color:var(--green); }
+
+  /* LOADING */
+  .loading { text-align:center; padding:60px 20px; color:var(--muted); }
+  .spinner { width:32px; height:32px; border:3px solid var(--border); border-top-color:var(--green);
+    border-radius:50%; animation:spin .8s linear infinite; margin:0 auto 16px; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  /* WELCOME POPUP */
+  #welcomeOverlay { position:fixed; inset:0; background:rgba(0,0,0,.75); backdrop-filter:blur(6px);
+    z-index:999; display:flex; align-items:center; justify-content:center; padding:16px; }
+  .welcome-popup { background:var(--card); border:1px solid rgba(0,200,83,.3); border-radius:20px;
+    padding:36px 32px; max-width:420px; width:100%; text-align:center;
+    box-shadow:0 0 60px rgba(0,200,83,.15); }
+  .welcome-trophy { font-size:3rem; margin-bottom:12px; }
+  .welcome-title { font-family:'Bebas Neue',sans-serif; font-size:2rem; letter-spacing:2px; }
+  .welcome-subtitle { color:var(--gold); font-weight:600; margin-bottom:16px; }
+  .welcome-body { color:var(--muted); font-size:.9rem; line-height:1.6; margin-bottom:20px; }
+  .welcome-rules { display:flex; justify-content:center; gap:12px; margin-bottom:16px; flex-wrap:wrap; }
+  .welcome-rule { display:flex; align-items:center; gap:6px; font-size:.85rem; font-weight:600;
+    background:var(--dark2); padding:6px 12px; border-radius:8px; }
+  .welcome-note { font-size:.8rem; color:var(--muted); background:var(--dark2); padding:10px 14px;
+    border-radius:8px; margin-bottom:16px; border-left:3px solid var(--gold); text-align:left; }
+
+  /* USERS TABLE */
+  .users-table { background:var(--card); border:1px solid var(--border); border-radius:12px; overflow:hidden; margin-bottom:32px; }
+  .users-row { display:grid; grid-template-columns:1fr 1fr auto; align-items:center; padding:12px 20px; border-bottom:1px solid var(--border); font-size:.9rem; }
+  .users-row:last-child { border-bottom:none; }
+  .users-row.header { font-size:.75rem; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:1px; background:var(--dark2); }
+  .users-row:hover { background:rgba(255,255,255,.02); }
+  .user-email { color:var(--muted); font-size:.82rem; word-break:break-all; }
+  .admin-section-title { font-family:'Bebas Neue',sans-serif; font-size:1.2rem; letter-spacing:2px; color:var(--gold); margin:24px 0 12px; }
+
+  /* PREDICTIONS MODAL */
+  #predsModal { position:fixed; inset:0; background:rgba(0,0,0,.75); backdrop-filter:blur(6px);
+    z-index:999; display:flex; align-items:center; justify-content:center; padding:16px; }
+  .preds-popup { background:var(--card); border:1px solid var(--border); border-radius:16px;
+    padding:28px; max-width:480px; width:100%; max-height:80vh; overflow-y:auto; }
+  .preds-popup-title { font-family:'Bebas Neue',sans-serif; font-size:1.4rem; letter-spacing:2px; margin-bottom:16px; }
+  .preds-list-row { display:grid; grid-template-columns:1fr auto; align-items:center;
+    padding:10px 0; border-bottom:1px solid var(--border); font-size:.9rem; }
+  .preds-list-row:last-child { border-bottom:none; }
+  .preds-score { font-family:'Bebas Neue',sans-serif; font-size:1.2rem; color:var(--gold); }
+
+  /* MOBILE */
+  @media (max-width:600px) {
+    .match-main { grid-template-columns:1fr; gap:8px; }
+    .match-center { min-width:auto; width:100%; }
+    .team.home { text-align:left; }
+    .hero { flex-direction:column; }
+    .hero-stats { gap:16px; }
+    header { padding:0 12px; }
+    .logo { font-size:1.2rem; }
+    .admin-match-card { grid-template-columns:1fr; }
+    .admin-score-form { justify-content:flex-start; }
+    .nav-tab { padding:12px 14px; font-size:.82rem; }
+    main { padding:16px 12px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">⚽ WC 2026 PREDICTIONS</div>
+  <div class="header-right" id="headerRight">
+    <button class="btn btn-primary" onclick="showPage('auth')">Σύνδεση</button>
+  </div>
+</header>
+
+<div class="nav-tabs" id="navTabs" style="display:none">
+  <div class="nav-tab active" onclick="showTab('predictions')">⚽ Προβλέψεις</div>
+  <div class="nav-tab" onclick="showTab('leaderboard')">🏆 Βαθμολογία</div>
+  <div class="nav-tab" onclick="showTab('stats')">📊 Στατιστικά</div>
+  <div class="nav-tab" onclick="showTab('rules')">📋 Κανόνες</div>
+  <div class="nav-tab admin-tab" style="display:none" onclick="showTab('admin')">⚙️ Admin</div>
+</div>
+
+<main>
+  <!-- AUTH -->
+  <div id="page-auth" class="auth-page" style="display:none">
+    <div class="auth-card">
+      <div class="auth-title">🏆 WC 2026</div>
+      <div class="auth-subtitle">Κάνε τις προβλέψεις σου και ανταγωνίσου με τους φίλους σου!</div>
+      <div id="authError" class="error-msg"></div>
+      <div id="loginForm">
+        <div class="form-group"><label>Email</label>
+          <input type="email" id="loginEmail" placeholder="email@example.com" /></div>
+        <div class="form-group"><label>Password</label>
+          <input type="password" id="loginPassword" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()" /></div>
+        <button class="btn btn-primary" style="width:100%" onclick="doLogin()">Σύνδεση</button>
+        <div class="auth-switch">Δεν έχεις λογαριασμό; <a onclick="toggleAuthForm(true)">Εγγραφή</a></div>
+      </div>
+      <div id="registerForm" style="display:none">
+        <div class="form-group"><label>Username</label>
+          <input type="text" id="regUsername" placeholder="π.χ. kostas_gr" /></div>
+        <div class="form-group">
+          <label>Email <span style="color:var(--muted);font-size:.8rem">(μπορεί να είναι φανταστικό, π.χ. kostas@wc2026.gr)</span></label>
+          <input type="email" id="regEmail" placeholder="email@example.com" /></div>
+        <div class="form-group"><label>Password</label>
+          <input type="password" id="regPassword" placeholder="Τουλάχιστον 6 χαρακτήρες" /></div>
+        <button class="btn btn-primary" style="width:100%" onclick="doRegister()">Εγγραφή</button>
+        <div class="auth-switch">Έχεις ήδη λογαριασμό; <a onclick="toggleAuthForm(false)">Σύνδεση</a></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PREDICTIONS -->
+  <div id="page-predictions" style="display:none">
+    <div class="hero">
+      <div class="hero-text">
+        <h2>ΟΙ ΠΡΟΒΛΕΨΕΙΣ ΣΟΥ</h2>
+        <p>Επίλεξε σκορ για κάθε αγώνα πριν ξεκινήσει!</p>
+      </div>
+      <div class="hero-stats">
+        <div class="hero-stat"><div class="hero-stat-value" id="myPoints">0</div><div class="hero-stat-label">ΒΑΘΜΟΙ</div></div>
+        <div class="hero-stat"><div class="hero-stat-value" id="myRank">-</div><div class="hero-stat-label">ΘΕΣΗ</div></div>
+      </div>
+    </div>
+    <div class="hint">✏️ <b>Ακριβές σκορ = 5 βαθμοί</b> &nbsp;|&nbsp; Σωστό αποτέλεσμα = 2 βαθμοί &nbsp;|&nbsp; Λάθος = 0</div>
+    <div id="matchesList"><div class="loading"><div class="spinner"></div>Φόρτωση αγώνων...</div></div>
+  </div>
+
+  <!-- LEADERBOARD -->
+  <div id="page-leaderboard" style="display:none">
+    <div class="section-title">🏆 ΒΑΘΜΟΛΟΓΙΑ</div>
+    <div class="section-subtitle">Κατάταξη όλων των παικτών</div>
+    <div id="leaderboardList"><div class="loading"><div class="spinner"></div>Φόρτωση...</div></div>
+  </div>
+
+  <!-- STATS -->
+  <div id="page-stats" style="display:none">
+    <div class="section-title">📊 ΣΤΑΤΙΣΤΙΚΑ</div>
+    <div class="section-subtitle">Τι προβλέπουν οι παίκτες για κάθε αγώνα</div>
+    <div id="statsList"><div class="loading"><div class="spinner"></div>Φόρτωση...</div></div>
+  </div>
+
+  <!-- RULES -->
+  <div id="page-rules" style="display:none">
+    <div class="section-title">📋 ΚΑΝΟΝΕΣ</div>
+    <div class="section-subtitle">Πώς παίζεται το WC 2026 Predictions</div>
+    <div class="rules-card">
+      <div class="rules-block">
+        <div class="rules-icon">⚽</div>
+        <div><div class="rules-label">Επίλεξε σκορ</div>
+        <div class="rules-desc">Για κάθε αγώνα, βάλε την πρόβλεψή σου πριν ξεκινήσει.</div></div>
+      </div>
+      <div class="rules-block">
+        <div class="rules-icon">🔒</div>
+        <div><div class="rules-label">Κλείδωμα</div>
+        <div class="rules-desc">Μόλις αρχίσει ο αγώνας, η πρόβλεψή σου κλειδώνει. Δεν μπορείς να την αλλάξεις!</div></div>
+      </div>
+      <div class="rules-divider">ΒΑΘΜΟΛΟΓΙΑ</div>
+      <div class="rules-block">
+        <div class="rules-icon">🥇</div>
+        <div><div class="rules-label">Ακριβές σκορ <span class="points-pill gold">5 βαθμοί</span></div>
+        <div class="rules-desc">Μάντεψες το ακριβές αποτέλεσμα (π.χ. 2-1 και βγήκε 2-1).</div></div>
+      </div>
+      <div class="rules-block">
+        <div class="rules-icon">✅</div>
+        <div><div class="rules-label">Σωστό αποτέλεσμα <span class="points-pill green">2 βαθμοί</span></div>
+        <div class="rules-desc">Μάντεψες ποιος κερδίζει ή ισοπαλία, αλλά όχι το ακριβές σκορ.</div></div>
+      </div>
+      <div class="rules-block">
+        <div class="rules-icon">❌</div>
+        <div><div class="rules-label">Λάθος <span class="points-pill red">0 βαθμοί</span></div>
+        <div class="rules-desc">Η πρόβλεψή σου ήταν λανθασμένη.</div></div>
+      </div>
+      <div class="rules-divider">ΠΑΡΑΔΕΙΓΜΑ</div>
+      <div class="rules-example">
+        <div class="example-row"><span>Πρόβλεψη: <b>2-1</b> &nbsp;|&nbsp; Αποτέλεσμα: <b>2-1</b></span><span class="points-pill gold">+5</span></div>
+        <div class="example-row"><span>Πρόβλεψη: <b>1-0</b> &nbsp;|&nbsp; Αποτέλεσμα: <b>3-1</b></span><span class="points-pill green">+2</span></div>
+        <div class="example-row"><span>Πρόβλεψη: <b>0-1</b> &nbsp;|&nbsp; Αποτέλεσμα: <b>2-0</b></span><span class="points-pill red">+0</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADMIN -->
+  <div id="page-admin" style="display:none">
+    <div class="section-title">⚙️ ADMIN PANEL</div>
+    <div class="admin-section-title">🎯 ΑΠΟΤΕΛΕΣΜΑΤΑ ΑΓΩΝΩΝ</div>
+    <div class="section-subtitle">Εισαγωγή πραγματικών αποτελεσμάτων — η βαθμολογία ενημερώνεται αυτόματα</div>
+    <div id="adminList"><div class="loading"><div class="spinner"></div>Φόρτωση...</div></div>
+    <div class="admin-section-title">👥 ΛΙΣΤΑ ΧΡΗΣΤΩΝ</div>
+    <div id="usersList"><div class="loading"><div class="spinner"></div>Φόρτωση...</div></div>
+  </div>
+
+  <!-- PREDICTIONS MODAL -->
+  <div id="predsModal" style="display:none">
+    <div class="preds-popup">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div class="preds-popup-title" id="predsModalTitle">Προβλέψεις</div>
+        <button class="btn btn-outline btn-small" onclick="closePredsModal()">✕ Κλείσιμο</button>
+      </div>
+      <div id="predsModalContent"></div>
+    </div>
+  </div>
+</main>
+
+<!-- WELCOME POPUP -->
+<div id="welcomeOverlay" style="display:none">
+  <div class="welcome-popup">
+    <div class="welcome-trophy">🏆</div>
+    <div class="welcome-title">Καλώς ήρθες!</div>
+    <div class="welcome-subtitle">WC 2026 Predictions</div>
+    <div class="welcome-body">Ανταγωνίσου με τους φίλους σου προβλέποντας τα αποτελέσματα του Παγκοσμίου Κυπέλλου!</div>
+    <div class="welcome-rules">
+      <div class="welcome-rule"><span class="points-pill gold">5</span> Ακριβές σκορ</div>
+      <div class="welcome-rule"><span class="points-pill green">2</span> Σωστό αποτέλεσμα</div>
+      <div class="welcome-rule"><span class="points-pill red">0</span> Λάθος</div>
+    </div>
+    <div class="welcome-note">🔒 Οι προβλέψεις κλειδώνουν μόλις ξεκινήσει ο αγώνας!</div>
+    <button class="btn btn-primary" style="width:100%;margin-top:8px" onclick="closeWelcome()">Ας παίξουμε! ⚽</button>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://vzkahbacoiscetsefgoc.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ6a2FoYmFjb2lzY2V0c2VmZ29jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5MTg2NjYsImV4cCI6MjA5NjQ5NDY2Nn0.4ouZWimpdQjGmnwxJ0lvsqkSX7gZhEW9cFvioTF8QJ4';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const FLAGS = {
+  'Μεξικό':'🇲🇽','Νότια Αφρική':'🇿🇦','Νότια Κορέα':'🇰🇷','Τσεχία':'🇨🇿',
+  'Καναδάς':'🇨🇦','Βοσνία-Ερζεγοβίνη':'🇧🇦','Κατάρ':'🇶🇦','Ελβετία':'🇨🇭',
+  'Βραζιλία':'🇧🇷','Μαρόκο':'🇲🇦','Αϊτή':'🇭🇹','Σκωτία':'🏴󠁧󠁢󠁳󠁣󠁴󠁿',
+  'ΗΠΑ':'🇺🇸','Παραγουάη':'🇵🇾','Αυστραλία':'🇦🇺','Κόσοβο':'🇽🇰',
+  'Γερμανία':'🇩🇪','Κουρασάο':'🇨🇼','Ακτή Ελεφαντοστού':'🇨🇮','Εκουαδόρ':'🇪🇨',
+  'Ολλανδία':'🇳🇱','Ιαπωνία':'🇯🇵','Ουκρανία':'🇺🇦','Τυνησία':'🇹🇳',
+  'Βέλγιο':'🇧🇪','Ιράν':'🇮🇷','Αίγυπτος':'🇪🇬','Νέα Ζηλανδία':'🇳🇿',
+  'Ισπανία':'🇪🇸','Πράσινο Ακρωτήριο':'🇨🇻','Σαουδική Αραβία':'🇸🇦','Ουρουγουάη':'🇺🇾',
+  'Γαλλία':'🇫🇷','Σενεγάλη':'🇸🇳','Ιράκ':'🇮🇶','Νορβηγία':'🇳🇴',
+  'Αργεντινή':'🇦🇷','Αλγερία':'🇩🇿','Αυστρία':'🇦🇹','Ιορδανία':'🇯🇴',
+  'Πορτογαλία':'🇵🇹','ΛΔΚ':'🇨🇩','Ουζμπεκιστάν':'🇺🇿','Κολομβία':'🇨🇴',
+  'Αγγλία':'🏴󠁧󠁢󠁥󠁮󠁧󠁿','Κροατία':'🇭🇷','Γκάνα':'🇬🇭','Παναμάς':'🇵🇦'
+};
+
+function flag(team) { return FLAGS[team] || '🏳️'; }
+
+let currentUser = null, currentProfile = null, allMatches = [], myPredictions = {};
+
+// ===== INIT =====
+async function init() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    currentUser = session.user;
+    await loadProfile();
+    showLoggedIn();
+    showTab('predictions');
+    showWelcomeIfNew();
+  } else {
+    showPage('auth');
+  }
+}
+
+async function loadProfile() {
+  const { data } = await sb.from('profiles').select('*').eq('id', currentUser.id).single();
+  currentProfile = data;
+}
+
+// ===== AUTH =====
+function toggleAuthForm(showReg) {
+  document.getElementById('loginForm').style.display = showReg ? 'none' : 'block';
+  document.getElementById('registerForm').style.display = showReg ? 'block' : 'none';
+  document.getElementById('authError').style.display = 'none';
+}
+function showAuthError(msg) {
+  const el = document.getElementById('authError');
+  el.textContent = msg; el.style.display = 'block';
+}
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass = document.getElementById('loginPassword').value;
+  if (!email || !pass) return showAuthError('Συμπλήρωσε email και password');
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+  if (error) return showAuthError('Λάθος email ή password');
+  currentUser = data.user; await loadProfile(); showLoggedIn(); showTab('predictions'); showWelcomeIfNew();
+}
+async function doRegister() {
+  const username = document.getElementById('regUsername').value.trim();
+  const email = document.getElementById('regEmail').value.trim();
+  const pass = document.getElementById('regPassword').value;
+  if (!username || !email || !pass) return showAuthError('Συμπλήρωσε όλα τα πεδία');
+  if (pass.length < 6) return showAuthError('Το password πρέπει να έχει τουλάχιστον 6 χαρακτήρες');
+  const { data: ex } = await sb.from('profiles').select('id').eq('username', username).single();
+  if (ex) return showAuthError('Αυτό το username υπάρχει ήδη');
+  const { data, error } = await sb.auth.signUp({ email, password: pass });
+  if (error) return showAuthError(error.message);
+  const { error: pe } = await sb.from('profiles').insert({ id: data.user.id, username, is_admin: false, total_points: 0 });
+  if (pe) return showAuthError('Σφάλμα δημιουργίας προφίλ');
+  currentUser = data.user; await loadProfile(); showLoggedIn(); showTab('predictions'); showWelcomeIfNew();
+}
+async function doLogout() { await sb.auth.signOut(); location.reload(); }
+
+// ===== UI =====
+function showPage(page) {
+  document.querySelectorAll('[id^="page-"]').forEach(el => el.style.display = 'none');
+  const el = document.getElementById('page-' + page);
+  if (el) el.style.display = page === 'auth' ? 'flex' : 'block';
+}
+function showTab(tab) {
+  const names = ['predictions','leaderboard','stats','rules','admin'];
+  document.querySelectorAll('.nav-tab').forEach((t, i) => t.classList.toggle('active', names[i] === tab));
+  showPage(tab);
+  if (tab === 'predictions') loadPredictionsPage();
+  if (tab === 'leaderboard') loadLeaderboard();
+  if (tab === 'stats') loadStats();
+  if (tab === 'admin') { loadAdminPage(); loadUsers(); }
+}
+function showLoggedIn() {
+  document.getElementById('navTabs').style.display = 'flex';
+  if (currentProfile?.is_admin) document.querySelector('.admin-tab').style.display = 'block';
+  document.getElementById('headerRight').innerHTML = `
+    <div class="user-badge">👤 ${currentProfile?.username || 'User'}</div>
+    <button class="btn btn-danger btn-small" onclick="doLogout()">Έξοδος</button>`;
+}
+function showWelcomeIfNew() {
+  if (!localStorage.getItem('wc2026_w_' + currentUser.id))
+    document.getElementById('welcomeOverlay').style.display = 'flex';
+}
+function closeWelcome() {
+  localStorage.setItem('wc2026_w_' + currentUser.id, '1');
+  document.getElementById('welcomeOverlay').style.display = 'none';
+}
+
+// ===== PREDICTIONS =====
+async function loadPredictionsPage() {
+  const list = document.getElementById('matchesList');
+  list.innerHTML = '<div class="loading"><div class="spinner"></div>Φόρτωση αγώνων...</div>';
+  const { data: matches } = await sb.from('matches').select('*').order('match_date');
+  allMatches = matches || [];
+  const { data: preds } = await sb.from('predictions').select('*').eq('user_id', currentUser.id);
+  myPredictions = {};
+  (preds || []).forEach(p => myPredictions[p.match_id] = p);
+  const { data: profiles } = await sb.from('profiles').select('*').order('total_points', { ascending: false });
+  const myRank = (profiles||[]).findIndex(p => p.id === currentUser.id) + 1;
+  const myPoints = (profiles||[]).find(p => p.id === currentUser.id)?.total_points || 0;
+  document.getElementById('myPoints').textContent = myPoints;
+  document.getElementById('myRank').textContent = myRank || '-';
+
+  // Load all predictions for stats bars
+  const { data: allPreds } = await sb.from('predictions').select('match_id,predicted_home,predicted_away');
+  const predsByMatch = {};
+  (allPreds||[]).forEach(p => {
+    if (!predsByMatch[p.match_id]) predsByMatch[p.match_id] = [];
+    predsByMatch[p.match_id].push(p);
+  });
+
+  const groups = {};
+  allMatches.forEach(m => { const g = m.group_name||'Άλλοι'; if (!groups[g]) groups[g]=[]; groups[g].push(m); });
+
+  let html = '';
+  for (const [group, gm] of Object.entries(groups)) {
+    html += `<div class="group-header">ΟΜΙΛΟΣ ${group}</div>`;
+    gm.forEach(m => {
+      const pred = myPredictions[m.id];
+      const now = new Date(), matchTime = new Date(m.match_date);
+      const locked = now >= matchTime, finished = m.is_finished;
+      const dateStr = matchTime.toLocaleString('el-GR', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+
+      let centerContent = '';
+      if (finished) {
+        const cls = pred ? (pred.points_earned===5?'exact':pred.points_earned===0?'zero':'') : '';
+        centerContent = `
+          <div class="real-score">${m.home_score} - ${m.away_score}</div>
+          ${pred ? `<div style="font-size:.75rem;color:var(--muted)">Πρόβλεψή σου: ${pred.predicted_home}-${pred.predicted_away}</div>
+          <div class="points-badge ${cls}">${pred.points_earned} βαθμοί</div>`
+          : '<div style="font-size:.75rem;color:var(--red)">Δεν έδωσες πρόβλεψη</div>'}`;
+      } else if (locked) {
+        centerContent = `
+          <div style="font-size:.85rem;color:var(--gold);font-weight:700;">🔒 Σε εξέλιξη</div>
+          ${pred ? `<div style="font-size:.75rem;color:var(--muted);margin-top:4px">Πρόβλεψή σου: ${pred.predicted_home}-${pred.predicted_away}</div>`
+                 : `<div style="font-size:.75rem;color:var(--red);margin-top:4px">Δεν έδωσες πρόβλεψη</div>`}`;
+      } else {
+        centerContent = `
+          <div class="score-inputs">
+            <input type="number" class="score-input" id="h_${m.id}" min="0" max="20" value="${pred?pred.predicted_home:''}" placeholder="0">
+            <span class="score-sep">-</span>
+            <input type="number" class="score-input" id="a_${m.id}" min="0" max="20" value="${pred?pred.predicted_away:''}" placeholder="0">
+          </div>
+          <button class="btn btn-primary save-btn" onclick="savePrediction(${m.id})">${pred?'✓ Αποθηκεύτηκε':'Αποθήκευση'}</button>`;
+      }
+
+      // Stats bar
+      const mp = predsByMatch[m.id] || [];
+      const statsHtml = buildStatsBar(mp, m.home_team, m.away_team);
+
+      const cardClass = finished?'finished':locked?'locked':pred?'saved':'';
+      html += `
+        <div class="match-card ${cardClass}" id="match_${m.id}">
+          <div class="match-main">
+            <div class="team home">${m.home_team}</div>
+            <div class="match-center">
+              <div class="match-date">📅 ${dateStr}</div>
+              ${centerContent}
+            </div>
+            <div class="team away">${m.away_team}</div>
+          </div>
+          ${statsHtml}
+        </div>`;
+    });
+  }
+  list.innerHTML = html;
+}
+
+function buildStatsBar(preds, homeTeam, awayTeam) {
+  const total = preds.length;
+  if (total === 0) return `<div class="match-stats"><div class="stats-no-preds">Δεν υπάρχουν προβλέψεις ακόμα</div></div>`;
+  let home = 0, draw = 0, away = 0;
+  preds.forEach(p => {
+    if (p.predicted_home > p.predicted_away) home++;
+    else if (p.predicted_home === p.predicted_away) draw++;
+    else away++;
+  });
+  const hp = Math.round(home/total*100), dp = Math.round(draw/total*100), ap = 100-hp-dp;
+  return `
+    <div class="match-stats">
+      <div class="stats-bar-wrap">
+        <div class="stats-bar-home" style="width:${hp}%"></div>
+        <div class="stats-bar-draw" style="width:${dp}%"></div>
+        <div class="stats-bar-away" style="width:${ap}%"></div>
+      </div>
+      <div class="stats-labels">
+        <div class="stats-label"><span class="stats-pct home-pct">${hp}%</span><span>${homeTeam.split(' ')[0]}</span></div>
+        <div class="stats-label"><span class="stats-pct draw-pct">${dp}%</span><span>Ισοπαλία</span></div>
+        <div class="stats-label"><span class="stats-pct away-pct">${ap}%</span><span>${awayTeam.split(' ')[0]}</span></div>
+      </div>
+    </div>`;
+}
+
+async function savePrediction(matchId) {
+  const match = allMatches.find(m => m.id === matchId);
+  if (match && new Date() >= new Date(match.match_date)) { alert('⏱️ Ο αγώνας έχει ήδη ξεκινήσει!'); return; }
+  const h = parseInt(document.getElementById('h_' + matchId).value);
+  const a = parseInt(document.getElementById('a_' + matchId).value);
+  if (isNaN(h) || isNaN(a)) { alert('Βάλε σκορ και για τις δύο ομάδες!'); return; }
+  const existing = myPredictions[matchId];
+  let error;
+  if (existing) {
+    ({error} = await sb.from('predictions').update({predicted_home:h,predicted_away:a}).eq('id',existing.id));
+  } else {
+    ({error} = await sb.from('predictions').insert({user_id:currentUser.id,match_id:matchId,predicted_home:h,predicted_away:a,points_earned:0}));
+  }
+  if (error) { alert('Σφάλμα: ' + error.message); return; }
+  const btn = document.querySelector(`#match_${matchId} .save-btn`);
+  if (btn) btn.textContent = '✓ Αποθηκεύτηκε';
+  document.getElementById('match_' + matchId).classList.add('saved');
+  const { data: preds } = await sb.from('predictions').select('*').eq('user_id', currentUser.id);
+  myPredictions = {};
+  (preds||[]).forEach(p => myPredictions[p.match_id] = p);
+}
+
+// ===== LEADERBOARD =====
+async function loadLeaderboard() {
+  const list = document.getElementById('leaderboardList');
+  list.innerHTML = '<div class="loading"><div class="spinner"></div>Φόρτωση...</div>';
+  const { data: profiles } = await sb.from('profiles').select('*').order('total_points', { ascending: false });
+  let html = `<div class="leaderboard-table">
+    <div class="lb-row header"><div>ΘΕΣΗ</div><div>ΠΑΙΚΤΗΣ</div><div>ΒΑΘΜΟΙ</div></div>`;
+  (profiles||[]).forEach((p,i) => {
+    const rc = i===0?'top1':i===1?'top2':i===2?'top3':'';
+    const ri = i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1;
+    const isMe = currentUser && p.id === currentUser.id;
+    html += `<div class="lb-row">
+      <div class="lb-rank ${rc}">${ri}</div>
+      <div class="lb-name ${isMe?'me':''}">${p.username}${isMe?' (εσύ)':''}</div>
+      <div class="lb-points">${p.total_points}</div>
+    </div>`;
+  });
+  list.innerHTML = html + '</div>';
+}
+
+// ===== STATS PAGE =====
+async function loadStats() {
+  const list = document.getElementById('statsList');
+  list.innerHTML = '<div class="loading"><div class="spinner"></div>Φόρτωση...</div>';
+  const { data: matches } = await sb.from('matches').select('*').order('match_date');
+  const { data: allPreds } = await sb.from('predictions').select('match_id,predicted_home,predicted_away');
+  const predsByMatch = {};
+  (allPreds||[]).forEach(p => {
+    if (!predsByMatch[p.match_id]) predsByMatch[p.match_id] = [];
+    predsByMatch[p.match_id].push(p);
+  });
+
+  const groups = {};
+  (matches||[]).forEach(m => { const g = m.group_name||'Άλλοι'; if (!groups[g]) groups[g]=[]; groups[g].push(m); });
+
+  let html = '';
+  for (const [group, gm] of Object.entries(groups)) {
+    html += `<div class="group-header">ΟΜΙΛΟΣ ${group}</div>`;
+    gm.forEach(m => {
+      const mp = predsByMatch[m.id] || [];
+      const total = mp.length;
+      let home=0, draw=0, away=0;
+      mp.forEach(p => {
+        if (p.predicted_home > p.predicted_away) home++;
+        else if (p.predicted_home === p.predicted_away) draw++;
+        else away++;
+      });
+      const hp = total ? Math.round(home/total*100) : 0;
+      const dp = total ? Math.round(draw/total*100) : 0;
+      const ap = total ? 100-hp-dp : 0;
+
+      html += `
+        <div class="match-card">
+          <div class="match-main">
+            <div class="team home">${m.home_team}</div>
+            <div class="match-center">
+              <div class="match-date">${total} ${total===1?'πρόβλεψη':'προβλέψεις'}</div>
+            </div>
+            <div class="team away">${m.away_team}</div>
+          </div>
+          ${total === 0
+            ? `<div class="match-stats"><div class="stats-no-preds">Δεν υπάρχουν προβλέψεις ακόμα</div></div>`
+            : `<div class="match-stats">
+                <div class="stats-bar-wrap">
+                  <div class="stats-bar-home" style="width:${hp}%"></div>
+                  <div class="stats-bar-draw" style="width:${dp}%"></div>
+                  <div class="stats-bar-away" style="width:${ap}%"></div>
+                </div>
+                <div class="stats-labels">
+                  <div class="stats-label"><span class="stats-pct home-pct">${hp}%</span><span>${m.home_team.split(' ')[0]}</span></div>
+                  <div class="stats-label"><span class="stats-pct draw-pct">${dp}%</span><span>Ισοπαλία</span></div>
+                  <div class="stats-label"><span class="stats-pct away-pct">${ap}%</span><span>${m.away_team.split(' ')[0]}</span></div>
+                </div>
+              </div>`
+          }
+        </div>`;
+    });
+  }
+  list.innerHTML = html;
+}
+
+// ===== ADMIN =====
+async function loadAdminPage() {
+  if (!currentProfile?.is_admin) return;
+  const list = document.getElementById('adminList');
+  list.innerHTML = '<div class="loading"><div class="spinner"></div>Φόρτωση...</div>';
+  const { data: matches } = await sb.from('matches').select('*').order('match_date');
+  let html = '';
+  (matches||[]).forEach(m => {
+    const dateStr = new Date(m.match_date).toLocaleString('el-GR', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+    html += `<div class="admin-match-card">
+      <div>
+        <div class="admin-match-info">${m.home_team} vs ${m.away_team}</div>
+        <div class="admin-match-date">📅 ${dateStr} | Όμιλος ${m.group_name}</div>
+      </div>
+      <div class="admin-score-form">
+        ${m.is_finished
+          ? `<span class="finished-badge">✓ ${m.home_score}-${m.away_score}</span>
+             <button class="btn btn-outline btn-small" onclick="resetMatch(${m.id})">Επαναφορά</button>`
+          : `<input type="number" id="ah_${m.id}" class="score-input" min="0" max="20" placeholder="0">
+             <span class="score-sep">-</span>
+             <input type="number" id="aa_${m.id}" class="score-input" min="0" max="20" placeholder="0">
+             <button class="btn btn-gold btn-small" onclick="saveResult(${m.id})">Αποθήκευση</button>`}
+      </div>
+    </div>`;
+  });
+  list.innerHTML = html;
+}
+
+async function saveResult(matchId) {
+  const h = parseInt(document.getElementById('ah_' + matchId).value);
+  const a = parseInt(document.getElementById('aa_' + matchId).value);
+  if (isNaN(h)||isNaN(a)) { alert('Βάλε σκορ!'); return; }
+  await sb.from('matches').update({home_score:h,away_score:a,is_finished:true}).eq('id',matchId);
+  const { data: preds } = await sb.from('predictions').select('*').eq('match_id', matchId);
+  for (const pred of (preds||[])) {
+    let pts = 0;
+    if (pred.predicted_home===h && pred.predicted_away===a) pts=5;
+    else {
+      const rr = h>a?'H':h<a?'A':'D', pr = pred.predicted_home>pred.predicted_away?'H':pred.predicted_home<pred.predicted_away?'A':'D';
+      if (rr===pr) pts=2;
+    }
+    await sb.from('predictions').update({points_earned:pts}).eq('id',pred.id);
+    const { data: prof } = await sb.from('profiles').select('total_points').eq('id',pred.user_id).single();
+    await sb.from('profiles').update({total_points:(prof?.total_points||0)+pts}).eq('id',pred.user_id);
+  }
+  alert('✅ Αποτέλεσμα αποθηκεύτηκε!');
+  loadAdminPage();
+}
+
+async function resetMatch(matchId) {
+  if (!confirm('Είσαι σίγουρος; Θα αφαιρεθούν οι βαθμοί από όλους!')) return;
+  const { data: preds } = await sb.from('predictions').select('*').eq('match_id', matchId);
+  for (const pred of (preds||[])) {
+    if (pred.points_earned > 0) {
+      const { data: prof } = await sb.from('profiles').select('total_points').eq('id',pred.user_id).single();
+      await sb.from('profiles').update({total_points:Math.max(0,(prof?.total_points||0)-pred.points_earned)}).eq('id',pred.user_id);
+      await sb.from('predictions').update({points_earned:0}).eq('id',pred.id);
+    }
+  }
+  await sb.from('matches').update({home_score:null,away_score:null,is_finished:false}).eq('id',matchId);
+  alert('Ο αγώνας επαναφέρθηκε!');
+  loadAdminPage();
+}
+
+// ===== USERS (ADMIN) =====
+async function loadUsers() {
+  const list = document.getElementById('usersList');
+  if (!list) return;
+  list.innerHTML = '<div class="loading"><div class="spinner"></div>Φόρτωση...</div>';
+
+  // Get profiles
+  const { data: profiles } = await sb.from('profiles').select('*').order('total_points', { ascending: false });
+
+  // Get auth users via profiles (we have email from auth)
+  // We'll fetch emails via a workaround - store them during registration would be ideal
+  // For now show username + points + user id hint
+  let html = `<div class="users-table">
+    <div class="users-row header"><div>USERNAME</div><div>EMAIL</div><div>ΒΑΘΜΟΙ</div></div>`;
+
+  for (const p of (profiles || [])) {
+    // Get email from auth.users via supabase admin - not available client side
+    // Show what we have
+    html += `<div class="users-row">
+      <div><b>${p.username}</b>${p.is_admin ? ' <span style="color:var(--gold);font-size:.75rem">ADMIN</span>' : ''}</div>
+      <div class="user-email" title="Κάνε κλικ για αντιγραφή" onclick="navigator.clipboard.writeText('${p.id}')" style="cursor:pointer">
+        <span style="color:var(--muted);font-size:.75rem">ID: ${p.id.substring(0,8)}...</span>
+      </div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:1.2rem;color:var(--gold)">${p.total_points}</div>
+    </div>`;
+  }
+  html += '</div>';
+  html += '<div style="font-size:.8rem;color:var(--muted);margin-top:8px">💡 Για να δεις emails και να αλλάξεις passwords, πήγαινε στο <b>Supabase → Authentication → Users</b></div>';
+  list.innerHTML = html;
+}
+
+// ===== PREDICTIONS MODAL =====
+async function showPredictions(matchId, homeTeam, awayTeam) {
+  document.getElementById('predsModalTitle').textContent = homeTeam + ' vs ' + awayTeam;
+  document.getElementById('predsModalContent').innerHTML = '<div class="loading"><div class="spinner"></div>Φόρτωση...</div>';
+  document.getElementById('predsModal').style.display = 'flex';
+
+  const { data: preds } = await sb.from('predictions')
+    .select('*, profiles(username)')
+    .eq('match_id', matchId)
+    .order('points_earned', { ascending: false });
+
+  if (!preds || preds.length === 0) {
+    document.getElementById('predsModalContent').innerHTML = '<div style="color:var(--muted);text-align:center;padding:20px">Δεν υπάρχουν προβλέψεις</div>';
+    return;
+  }
+
+  let html = '';
+  preds.forEach(p => {
+    const result = p.predicted_home > p.predicted_away ? homeTeam.split(' ')[0] :
+                   p.predicted_home < p.predicted_away ? awayTeam.split(' ')[0] : 'Ισοπαλία';
+    const badgeCls = p.points_earned === 5 ? 'exact' : p.points_earned === 2 ? '' : 'zero';
+    html += `<div class="preds-list-row">
+      <div>
+        <div style="font-weight:600">${p.profiles?.username || 'Άγνωστος'}</div>
+        <div style="font-size:.78rem;color:var(--muted)">${result}</div>
+      </div>
+      <div style="text-align:right">
+        <div class="preds-score">${p.predicted_home} - ${p.predicted_away}</div>
+        ${p.points_earned !== null ? `<div class="points-badge ${badgeCls}" style="font-size:.7rem">${p.points_earned} βαθμοί</div>` : ''}
+      </div>
+    </div>`;
+  });
+  document.getElementById('predsModalContent').innerHTML = html;
+}
+
+function closePredsModal() {
+  document.getElementById('predsModal').style.display = 'none';
+}
+
+init();
+</script>
+</body>
+</html>
