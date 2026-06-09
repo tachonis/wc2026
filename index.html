@@ -194,6 +194,27 @@
   .welcome-note { font-size:.8rem; color:var(--muted); background:var(--dark2); padding:10px 14px;
     border-radius:8px; margin-bottom:16px; border-left:3px solid var(--gold); text-align:left; }
 
+  /* GROUPS TABLE */
+  .group-table { background:var(--card); border:1px solid var(--border); border-radius:12px; overflow:hidden; margin-bottom:24px; }
+  .group-table-header { font-family:'Bebas Neue',sans-serif; font-size:1rem; letter-spacing:3px; color:var(--gold);
+    background:var(--dark2); padding:12px 16px; border-bottom:1px solid var(--border); }
+  .group-table-row { display:grid; grid-template-columns:24px 1fr 28px 28px 28px 52px 48px;
+    align-items:center; padding:10px 16px; border-bottom:1px solid var(--border); font-size:.88rem; gap:4px; }
+  .group-table-row:last-child { border-bottom:none; }
+  .group-table-row:hover { background:rgba(255,255,255,.02); }
+  .group-table-row.col-header { font-size:.72rem; font-weight:700; color:var(--muted);
+    text-transform:uppercase; letter-spacing:1px; background:var(--dark3); }
+  .group-table-row.top2 { border-left:3px solid var(--green); }
+  .gt-pos { color:var(--muted); font-weight:700; text-align:center; }
+  .gt-team { font-weight:600; }
+  .gt-num { text-align:center; color:var(--muted); }
+  .gt-goals { text-align:center; font-size:.82rem; color:var(--muted); }
+  .gt-pts { text-align:center; font-family:'Bebas Neue',sans-serif; font-size:1.2rem; color:var(--gold); }
+
+  @media (max-width:600px) {
+    .group-table-row { grid-template-columns:20px 1fr 24px 24px 24px 44px 40px; padding:8px 10px; font-size:.8rem; }
+  }
+
   /* USERS TABLE */
   .users-table { background:var(--card); border:1px solid var(--border); border-radius:12px; overflow:hidden; margin-bottom:32px; }
   .users-row { display:grid; grid-template-columns:1fr 1fr auto; align-items:center; padding:12px 20px; border-bottom:1px solid var(--border); font-size:.9rem; }
@@ -243,6 +264,7 @@
   <div class="nav-tab active" onclick="showTab('predictions')">⚽ Προβλέψεις</div>
   <div class="nav-tab" onclick="showTab('leaderboard')">🏆 Βαθμολογία</div>
   <div class="nav-tab" onclick="showTab('stats')">📊 Στατιστικά</div>
+  <div class="nav-tab" onclick="showTab('groups')">🗂️ Όμιλοι</div>
   <div class="nav-tab" onclick="showTab('rules')">📋 Κανόνες</div>
   <div class="nav-tab admin-tab" style="display:none" onclick="showTab('admin')">⚙️ Admin</div>
 </div>
@@ -304,6 +326,13 @@
     <div class="section-title">📊 ΣΤΑΤΙΣΤΙΚΑ</div>
     <div class="section-subtitle">Τι προβλέπουν οι παίκτες για κάθε αγώνα</div>
     <div id="statsList"><div class="loading"><div class="spinner"></div>Φόρτωση...</div></div>
+  </div>
+
+  <!-- GROUPS -->
+  <div id="page-groups" style="display:none">
+    <div class="section-title">🗂️ ΟΜΙΛΟΙ</div>
+    <div class="section-subtitle">Βαθμολογία ομίλων βάσει πραγματικών αποτελεσμάτων</div>
+    <div id="groupsList"><div class="loading"><div class="spinner"></div>Φόρτωση...</div></div>
   </div>
 
   <!-- RULES -->
@@ -469,12 +498,13 @@ function showPage(page) {
   if (el) el.style.display = page === 'auth' ? 'flex' : 'block';
 }
 function showTab(tab) {
-  const names = ['predictions','leaderboard','stats','rules','admin'];
+  const names = ['predictions','leaderboard','stats','groups','rules','admin'];
   document.querySelectorAll('.nav-tab').forEach((t, i) => t.classList.toggle('active', names[i] === tab));
   showPage(tab);
   if (tab === 'predictions') loadPredictionsPage();
   if (tab === 'leaderboard') loadLeaderboard();
   if (tab === 'stats') loadStats();
+  if (tab === 'groups') loadGroups();
   if (tab === 'admin') { loadAdminPage(); loadUsers(); }
 }
 function showLoggedIn() {
@@ -833,6 +863,70 @@ async function showPredictions(matchId, homeTeam, awayTeam) {
 
 function closePredsModal() {
   document.getElementById('predsModal').style.display = 'none';
+}
+
+// ===== GROUPS =====
+async function loadGroups() {
+  const list = document.getElementById('groupsList');
+  list.innerHTML = '<div class="loading"><div class="spinner"></div>Φόρτωση...</div>';
+
+  const { data: matches } = await sb.from('matches').select('*').eq('stage','group').order('match_date');
+  if (!matches || matches.length === 0) { list.innerHTML = '<div class="loading">Δεν υπάρχουν δεδομένα</div>'; return; }
+
+  // Build standings per group
+  const groups = {};
+  matches.forEach(m => {
+    const g = m.group_name;
+    if (!groups[g]) groups[g] = {};
+    [m.home_team, m.away_team].forEach(team => {
+      if (!groups[g][team]) groups[g][team] = { p:0, w:0, d:0, l:0, gf:0, ga:0, pts:0 };
+    });
+    if (m.is_finished) {
+      const h = m.home_score, a = m.away_score;
+      const ht = groups[g][m.home_team], at = groups[g][m.away_team];
+      ht.p++; at.p++;
+      ht.gf += h; ht.ga += a;
+      at.gf += a; at.ga += h;
+      if (h > a) { ht.w++; ht.pts+=3; at.l++; }
+      else if (h < a) { at.w++; at.pts+=3; ht.l++; }
+      else { ht.d++; ht.pts++; at.d++; at.pts++; }
+    }
+  });
+
+  let html = '';
+  for (const [group, teams] of Object.entries(groups).sort()) {
+    const sorted = Object.entries(teams).sort((a,b) => {
+      if (b[1].pts !== a[1].pts) return b[1].pts - a[1].pts;
+      const gdA = a[1].gf - a[1].ga, gdB = b[1].gf - b[1].ga;
+      if (gdB !== gdA) return gdB - gdA;
+      return b[1].gf - a[1].gf;
+    });
+
+    html += `<div class="group-table">
+      <div class="group-table-header">ΟΜΙΛΟΣ ${group}</div>
+      <div class="group-table-row col-header">
+        <div>#</div><div>Ομάδα</div><div title="Αγώνες">Α</div>
+        <div title="Νίκες">Ν</div><div title="Ισοπαλίες">Ι</div>
+        <div title="Γκολ">Γκολ</div><div title="Βαθμοί">Β</div>
+      </div>`;
+
+    sorted.forEach(([team, s], i) => {
+      const gd = s.gf - s.ga;
+      const gdStr = gd > 0 ? '+'+gd : gd;
+      const isTop = i < 2;
+      html += `<div class="group-table-row ${isTop ? 'top2' : ''}">
+        <div class="gt-pos">${i+1}</div>
+        <div class="gt-team">${team}</div>
+        <div class="gt-num">${s.p}</div>
+        <div class="gt-num">${s.w}</div>
+        <div class="gt-num">${s.d}</div>
+        <div class="gt-goals">${s.gf}:${s.ga} <span style="font-size:.72rem;color:var(--muted)">(${gdStr})</span></div>
+        <div class="gt-pts">${s.pts}</div>
+      </div>`;
+    });
+    html += '</div>';
+  }
+  list.innerHTML = html;
 }
 
 init();
