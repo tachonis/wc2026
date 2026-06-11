@@ -78,6 +78,13 @@
   .group-header { font-family:'Bebas Neue',sans-serif; font-size:1.1rem; letter-spacing:3px; color:var(--gold);
     margin:28px 0 12px; padding-bottom:8px; border-bottom:1px solid var(--border); }
 
+  /* FILTER BUTTONS */
+  .filter-bar { display:flex; gap:8px; margin-bottom:20px; }
+  .filter-btn { padding:8px 20px; border-radius:8px; border:1px solid var(--border); background:transparent;
+    color:var(--muted); font-family:'Outfit',sans-serif; font-weight:600; font-size:.85rem; cursor:pointer; transition:all .2s; }
+  .filter-btn:hover { border-color:var(--green); color:var(--green); }
+  .filter-btn.active { background:var(--green); color:#000; border-color:var(--green); }
+
   /* MATCH CARDS */
   .match-card { background:var(--card); border:1px solid var(--border); border-radius:12px;
     padding:16px 20px; margin-bottom:10px; transition:border-color .2s; }
@@ -311,6 +318,10 @@
       </div>
     </div>
     <div class="hint">✏️ <b>Ακριβές σκορ = 5 βαθμοί</b> &nbsp;|&nbsp; Σωστό αποτέλεσμα = 2 βαθμοί &nbsp;|&nbsp; Λάθος = 0</div>
+    <div class="filter-bar">
+      <button class="filter-btn active" id="filterGroup" onclick="setFilter('group')">🗂️ Ανά Όμιλο</button>
+      <button class="filter-btn" id="filterDay" onclick="setFilter('day')">📅 Ανά Ημέρα</button>
+    </div>
     <div id="matchesList"><div class="loading"><div class="spinner"></div>Φόρτωση αγώνων...</div></div>
   </div>
 
@@ -436,7 +447,8 @@ const FLAGS = {
 
 function flag(team) { return FLAGS[team] || '🏳️'; }
 
-let currentUser = null, currentProfile = null, allMatches = [], myPredictions = {};
+let currentUser = null, currentProfile = null, allMatches = [], myPredictions = {}, allPredsByMatch = {};
+let currentFilter = 'group';
 
 // ===== INIT =====
 async function init() {
@@ -540,67 +552,101 @@ async function loadPredictionsPage() {
 
   // Load all predictions for stats bars
   const { data: allPreds } = await sb.from('predictions').select('match_id,predicted_home,predicted_away');
-  const predsByMatch = {};
+  allPredsByMatch = {};
   (allPreds||[]).forEach(p => {
-    if (!predsByMatch[p.match_id]) predsByMatch[p.match_id] = [];
-    predsByMatch[p.match_id].push(p);
+    if (!allPredsByMatch[p.match_id]) allPredsByMatch[p.match_id] = [];
+    allPredsByMatch[p.match_id].push(p);
   });
 
-  const groups = {};
-  allMatches.forEach(m => { const g = m.group_name||'Άλλοι'; if (!groups[g]) groups[g]=[]; groups[g].push(m); });
+  renderMatches();
+}
+
+function setFilter(filter) {
+  currentFilter = filter;
+  document.getElementById('filterGroup').classList.toggle('active', filter === 'group');
+  document.getElementById('filterDay').classList.toggle('active', filter === 'day');
+  renderMatches();
+}
+
+function renderMatches() {
+  const list = document.getElementById('matchesList');
+  if (!list || allMatches.length === 0) return;
 
   let html = '';
-  for (const [group, gm] of Object.entries(groups)) {
-    html += `<div class="group-header">ΟΜΙΛΟΣ ${group}</div>`;
-    gm.forEach(m => {
-      const pred = myPredictions[m.id];
-      const now = new Date(), matchTime = new Date(m.match_date);
-      const locked = now >= matchTime, finished = m.is_finished;
-      const dateStr = matchTime.toLocaleString('el-GR', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+  let grouped = {};
 
-      let centerContent = '';
-      if (finished) {
-        const cls = pred ? (pred.points_earned===5?'exact':pred.points_earned===0?'zero':'') : '';
-        centerContent = `
-          <div class="real-score">${m.home_score} - ${m.away_score}</div>
-          ${pred ? `<div style="font-size:.75rem;color:var(--muted)">Πρόβλεψή σου: ${pred.predicted_home}-${pred.predicted_away}</div>
-          <div class="points-badge ${cls}">${pred.points_earned} βαθμοί</div>`
-          : '<div style="font-size:.75rem;color:var(--red)">Δεν έδωσες πρόβλεψη</div>'}`;
-      } else if (locked) {
-        centerContent = `
-          <div style="font-size:.85rem;color:var(--gold);font-weight:700;">🔒 Σε εξέλιξη</div>
-          ${pred ? `<div style="font-size:.75rem;color:var(--muted);margin-top:4px">Πρόβλεψή σου: ${pred.predicted_home}-${pred.predicted_away}</div>`
-                 : `<div style="font-size:.75rem;color:var(--red);margin-top:4px">Δεν έδωσες πρόβλεψη</div>`}`;
-      } else {
-        centerContent = `
-          <div class="score-inputs">
-            <input type="number" class="score-input" id="h_${m.id}" min="0" max="20" value="${pred?pred.predicted_home:''}" placeholder="0">
-            <span class="score-sep">-</span>
-            <input type="number" class="score-input" id="a_${m.id}" min="0" max="20" value="${pred?pred.predicted_away:''}" placeholder="0">
-          </div>
-          <button class="btn btn-primary save-btn" onclick="savePrediction(${m.id})">${pred?'✓ Αποθηκεύτηκε':'Αποθήκευση'}</button>`;
-      }
-
-      // Stats bar
-      const mp = predsByMatch[m.id] || [];
-      const statsHtml = buildStatsBar(mp, m.home_team, m.away_team);
-
-      const cardClass = finished?'finished':locked?'locked':pred?'saved':'';
-      html += `
-        <div class="match-card ${cardClass}" id="match_${m.id}">
-          <div class="match-main">
-            <div class="team home">${m.home_team}</div>
-            <div class="match-center">
-              <div class="match-date">📅 ${dateStr}</div>
-              ${centerContent}
-            </div>
-            <div class="team away">${m.away_team}</div>
-          </div>
-          ${statsHtml}
-        </div>`;
+  if (currentFilter === 'group') {
+    allMatches.forEach(m => {
+      const g = m.group_name || 'Άλλοι';
+      if (!grouped[g]) grouped[g] = [];
+      grouped[g].push(m);
     });
+    for (const [key, gm] of Object.entries(grouped)) {
+      html += `<div class="group-header">ΟΜΙΛΟΣ ${key}</div>`;
+      gm.forEach(m => { html += buildMatchCardHtml(m); });
+    }
+  } else {
+    allMatches.forEach(m => {
+      const d = new Date(m.match_date).toLocaleDateString('el-GR', {weekday:'long', day:'2-digit', month:'2-digit'});
+      if (!grouped[d]) grouped[d] = [];
+      grouped[d].push(m);
+    });
+    for (const [key, gm] of Object.entries(grouped)) {
+      html += `<div class="group-header">${key.toUpperCase()}</div>`;
+      gm.forEach(m => { html += buildMatchCardHtml(m); });
+    }
   }
+
   list.innerHTML = html;
+}
+
+function buildMatchCardHtml(m) {
+  const pred = myPredictions[m.id];
+  const now = new Date(), matchTime = new Date(m.match_date);
+  const lockTime = new Date(matchTime.getTime() - 60 * 60 * 1000);
+  const locked = now >= lockTime, finished = m.is_finished;
+  const dateStr = matchTime.toLocaleString('el-GR', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false});
+
+  let centerContent = '';
+  if (finished) {
+    const cls = pred ? (pred.points_earned===5?'exact':pred.points_earned===0?'zero':'') : '';
+    centerContent = `
+      <div class="real-score">${m.home_score} - ${m.away_score}</div>
+      ${pred ? `<div style="font-size:.75rem;color:var(--muted)">Πρόβλεψή σου: ${pred.predicted_home}-${pred.predicted_away}</div>
+      <div class="points-badge ${cls}">${pred.points_earned} βαθμοί</div>`
+      : '<div style="font-size:.75rem;color:var(--red)">Δεν έδωσες πρόβλεψη</div>'}
+      <button class="btn btn-outline btn-small" style="margin-top:4px" onclick="showPredictions(${m.id},'${m.home_team}','${m.away_team}')">👥 Προβλέψεις παικτών</button>`;
+  } else if (locked) {
+    centerContent = `
+      <div style="font-size:.85rem;color:var(--gold);font-weight:700;">🔒 Σε εξέλιξη</div>
+      ${pred ? `<div style="font-size:.75rem;color:var(--muted);margin-top:4px">Πρόβλεψή σου: ${pred.predicted_home}-${pred.predicted_away}</div>`
+             : `<div style="font-size:.75rem;color:var(--red);margin-top:4px">Δεν έδωσες πρόβλεψη</div>`}`;
+  } else {
+    centerContent = `
+      <div class="score-inputs">
+        <input type="number" class="score-input" id="h_${m.id}" min="0" max="20" value="${pred?pred.predicted_home:''}" placeholder="0">
+        <span class="score-sep">-</span>
+        <input type="number" class="score-input" id="a_${m.id}" min="0" max="20" value="${pred?pred.predicted_away:''}" placeholder="0">
+      </div>
+      <button class="btn btn-primary save-btn" onclick="savePrediction(${m.id})">${pred?'✓ Αποθηκεύτηκε':'Αποθήκευση'}</button>`;
+  }
+
+  const mp = allPredsByMatch[m.id] || [];
+  const statsHtml = buildStatsBar(mp, m.home_team, m.away_team);
+  const cardClass = finished?'finished':locked?'locked':pred?'saved':'';
+
+  return `
+    <div class="match-card ${cardClass}" id="match_${m.id}">
+      <div class="match-main">
+        <div class="team home">${m.home_team}</div>
+        <div class="match-center">
+          <div class="match-date">📅 ${dateStr}</div>
+          ${centerContent}
+        </div>
+        <div class="team away">${m.away_team}</div>
+      </div>
+      ${statsHtml}
+    </div>`;
 }
 
 function buildStatsBar(preds, homeTeam, awayTeam) {
@@ -630,7 +676,9 @@ function buildStatsBar(preds, homeTeam, awayTeam) {
 
 async function savePrediction(matchId) {
   const match = allMatches.find(m => m.id === matchId);
-  if (match && new Date() >= new Date(match.match_date)) { alert('⏱️ Ο αγώνας έχει ήδη ξεκινήσει!'); return; }
+  const matchStart = new Date(match.match_date);
+  const lockTime = new Date(matchStart.getTime() - 60 * 60 * 1000);
+  if (match && new Date() >= lockTime) { alert('🔒 Οι προβλέψεις κλείνουν 1 ώρα πριν τον αγώνα!'); return; }
   const h = parseInt(document.getElementById('h_' + matchId).value);
   const a = parseInt(document.getElementById('a_' + matchId).value);
   if (isNaN(h) || isNaN(a)) { alert('Βάλε σκορ και για τις δύο ομάδες!'); return; }
@@ -739,7 +787,7 @@ async function loadAdminPage() {
   const { data: matches } = await sb.from('matches').select('*').order('match_date');
   let html = '';
   (matches||[]).forEach(m => {
-    const dateStr = new Date(m.match_date).toLocaleString('el-GR', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+    const dateStr = new Date(m.match_date).toLocaleString('el-GR', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false});
     html += `<div class="admin-match-card">
       <div>
         <div class="admin-match-info">${m.home_team} vs ${m.away_team}</div>
