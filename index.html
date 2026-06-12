@@ -620,7 +620,8 @@ function buildMatchCardHtml(m) {
     centerContent = `
       <div style="font-size:.85rem;color:var(--gold);font-weight:700;">🔒 Σε εξέλιξη</div>
       ${pred ? `<div style="font-size:.75rem;color:var(--muted);margin-top:4px">Πρόβλεψή σου: ${pred.predicted_home}-${pred.predicted_away}</div>`
-             : `<div style="font-size:.75rem;color:var(--red);margin-top:4px">Δεν έδωσες πρόβλεψη</div>`}`;
+             : `<div style="font-size:.75rem;color:var(--red);margin-top:4px">Δεν έδωσες πρόβλεψη</div>`}
+      <button class="btn btn-outline btn-small" style="margin-top:6px" onclick="showPredictions(${m.id},'${m.home_team}','${m.away_team}')">👥 Προβλέψεις παικτών</button>`;
   } else {
     centerContent = `
       <div class="score-inputs">
