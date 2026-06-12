@@ -811,19 +811,43 @@ async function saveResult(matchId) {
   const h = parseInt(document.getElementById('ah_' + matchId).value);
   const a = parseInt(document.getElementById('aa_' + matchId).value);
   if (isNaN(h)||isNaN(a)) { alert('Βάλε σκορ!'); return; }
-  await sb.from('matches').update({home_score:h,away_score:a,is_finished:true}).eq('id',matchId);
+
+  // Disable κουμπί αμέσως για να αποφύγουμε διπλό πάτημα
+  const btn = document.querySelector(`button[onclick="saveResult(${matchId})"]`);
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Αποθήκευση...'; }
+
+  // Έλεγχος αν έχει ήδη αποτέλεσμα
+  const { data: existingMatch } = await sb.from('matches').select('is_finished').eq('id', matchId).single();
+  if (existingMatch?.is_finished) {
+    alert('⚠️ Αυτός ο αγώνας έχει ήδη αποτέλεσμα!');
+    loadAdminPage();
+    return;
+  }
+
+  // Αποθήκευση αποτελέσματος
+  await sb.from('matches').update({home_score:h, away_score:a, is_finished:true}).eq('id', matchId);
+
+  // Υπολογισμός βαθμών για κάθε πρόβλεψη
   const { data: preds } = await sb.from('predictions').select('*').eq('match_id', matchId);
   for (const pred of (preds||[])) {
     let pts = 0;
     if (pred.predicted_home===h && pred.predicted_away===a) pts=5;
     else {
-      const rr = h>a?'H':h<a?'A':'D', pr = pred.predicted_home>pred.predicted_away?'H':pred.predicted_home<pred.predicted_away?'A':'D';
+      const rr = h>a?'H':h<a?'A':'D';
+      const pr = pred.predicted_home>pred.predicted_away?'H':pred.predicted_home<pred.predicted_away?'A':'D';
       if (rr===pr) pts=2;
     }
-    await sb.from('predictions').update({points_earned:pts}).eq('id',pred.id);
-    const { data: prof } = await sb.from('profiles').select('total_points').eq('id',pred.user_id).single();
-    await sb.from('profiles').update({total_points:(prof?.total_points||0)+pts}).eq('id',pred.user_id);
+    await sb.from('predictions').update({points_earned:pts}).eq('id', pred.id);
   }
+
+  // Ανανέωση συνολικής βαθμολογίας — υπολογισμός από την αρχή για ακρίβεια
+  const { data: allProfiles } = await sb.from('profiles').select('id');
+  for (const profile of (allProfiles||[])) {
+    const { data: userPreds } = await sb.from('predictions').select('points_earned').eq('user_id', profile.id);
+    const total = (userPreds||[]).reduce((sum, p) => sum + (p.points_earned||0), 0);
+    await sb.from('profiles').update({total_points: total}).eq('id', profile.id);
+  }
+
   alert('✅ Αποτέλεσμα αποθηκεύτηκε!');
   loadAdminPage();
 }
