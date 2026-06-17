@@ -359,7 +359,7 @@
       <div class="rules-block">
         <div class="rules-icon">🔒</div>
         <div><div class="rules-label">Κλείδωμα</div>
-        <div class="rules-desc">Μόλις αρχίσει ο αγώνας, η πρόβλεψή σου κλειδώνει. Δεν μπορείς να την αλλάξεις!</div></div>
+        <div class="rules-desc">Μισή ώρα πριν τον αγώνα, η πρόβλεψή σου κλειδώνει. Δεν μπορείς να την αλλάξεις!</div></div>
       </div>
       <div class="rules-divider">ΒΑΘΜΟΛΟΓΙΑ</div>
       <div class="rules-block">
@@ -420,7 +420,7 @@
       <div class="welcome-rule"><span class="points-pill green">2</span> Σωστό αποτέλεσμα</div>
       <div class="welcome-rule"><span class="points-pill red">0</span> Λάθος</div>
     </div>
-    <div class="welcome-note">🔒 Οι προβλέψεις κλειδώνουν μόλις ξεκινήσει ο αγώνας!</div>
+    <div class="welcome-note">🔒 Οι προβλέψεις κλειδώνουν μισή ώρα πριν τον αγώνα!</div>
     <button class="btn btn-primary" style="width:100%;margin-top:8px" onclick="closeWelcome()">Ας παίξουμε! ⚽</button>
   </div>
 </div>
@@ -603,7 +603,7 @@ function renderMatches() {
 function buildMatchCardHtml(m) {
   const pred = myPredictions[m.id];
   const now = new Date(), matchTime = new Date(m.match_date);
-  const lockTime = new Date(matchTime.getTime() - 60 * 60 * 1000);
+  const lockTime = new Date(matchTime.getTime() - 30 * 60 * 1000);
   const locked = now >= lockTime, finished = m.is_finished;
   const dateStr = matchTime.toLocaleString('el-GR', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false});
 
@@ -678,8 +678,8 @@ function buildStatsBar(preds, homeTeam, awayTeam) {
 async function savePrediction(matchId) {
   const match = allMatches.find(m => m.id === matchId);
   const matchStart = new Date(match.match_date);
-  const lockTime = new Date(matchStart.getTime() - 60 * 60 * 1000);
-  if (match && new Date() >= lockTime) { alert('🔒 Οι προβλέψεις κλείνουν 1 ώρα πριν τον αγώνα!'); return; }
+  const lockTime = new Date(matchStart.getTime() - 30 * 60 * 1000);
+  if (match && new Date() >= lockTime) { alert('🔒 Οι προβλέψεις κλείνουν μισή ώρα πριν τον αγώνα!'); return; }
   const h = parseInt(document.getElementById('h_' + matchId).value);
   const a = parseInt(document.getElementById('a_' + matchId).value);
   if (isNaN(h) || isNaN(a)) { alert('Βάλε σκορ και για τις δύο ομάδες!'); return; }
