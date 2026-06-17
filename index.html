@@ -321,6 +321,7 @@
     <div class="filter-bar">
       <button class="filter-btn active" id="filterGroup" onclick="setFilter('group')">🗂️ Ανά Όμιλο</button>
       <button class="filter-btn" id="filterDay" onclick="setFilter('day')">📅 Ανά Ημέρα</button>
+      <button class="filter-btn" id="filterUpcoming" onclick="setFilter('upcoming')">⏱️ Επόμενοι</button>
     </div>
     <div id="matchesList"><div class="loading"><div class="spinner"></div>Φόρτωση αγώνων...</div></div>
   </div>
@@ -565,6 +566,7 @@ function setFilter(filter) {
   currentFilter = filter;
   document.getElementById('filterGroup').classList.toggle('active', filter === 'group');
   document.getElementById('filterDay').classList.toggle('active', filter === 'day');
+  document.getElementById('filterUpcoming').classList.toggle('active', filter === 'upcoming');
   renderMatches();
 }
 
@@ -584,6 +586,15 @@ function renderMatches() {
     for (const [key, gm] of Object.entries(grouped)) {
       html += `<div class="group-header">ΟΜΙΛΟΣ ${key}</div>`;
       gm.forEach(m => { html += buildMatchCardHtml(m); });
+    }
+  } else if (currentFilter === 'upcoming') {
+    const upcoming = allMatches
+      .filter(m => !m.is_finished)
+      .sort((a, b) => new Date(a.match_date) - new Date(b.match_date));
+    if (upcoming.length === 0) {
+      html = '<div class="loading">Δεν υπάρχουν επόμενοι αγώνες — όλοι έχουν παιχτεί! 🏆</div>';
+    } else {
+      upcoming.forEach(m => { html += buildMatchCardHtml(m); });
     }
   } else {
     allMatches.forEach(m => {
