@@ -272,6 +272,7 @@
   <div class="nav-tab" onclick="showTab('leaderboard')">🏆 Βαθμολογία</div>
   <div class="nav-tab" onclick="showTab('stats')">📊 Στατιστικά</div>
   <div class="nav-tab" onclick="showTab('groups')">🗂️ Όμιλοι</div>
+  <div class="nav-tab" onclick="showTab('results')">📜 Αποτελέσματα</div>
   <div class="nav-tab" onclick="showTab('rules')">📋 Κανόνες</div>
   <div class="nav-tab admin-tab" style="display:none" onclick="showTab('admin')">⚙️ Admin</div>
 </div>
@@ -345,6 +346,17 @@
     <div class="section-title">🗂️ ΟΜΙΛΟΙ</div>
     <div class="section-subtitle">Βαθμολογία ομίλων βάσει πραγματικών αποτελεσμάτων</div>
     <div id="groupsList"><div class="loading"><div class="spinner"></div>Φόρτωση...</div></div>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="page-results" style="display:none">
+    <div class="section-title">📜 ΑΠΟΤΕΛΕΣΜΑΤΑ</div>
+    <div class="section-subtitle">Όλοι οι ολοκληρωμένοι αγώνες</div>
+    <div class="filter-bar">
+      <button class="filter-btn active" id="resultsFilterGroup" onclick="setResultsFilter('group')">🗂️ Ανά Όμιλο</button>
+      <button class="filter-btn" id="resultsFilterDay" onclick="setResultsFilter('day')">📅 Ανά Ημέρα</button>
+    </div>
+    <div id="resultsList"><div class="loading"><div class="spinner"></div>Φόρτωση...</div></div>
   </div>
 
   <!-- RULES -->
@@ -511,13 +523,14 @@ function showPage(page) {
   if (el) el.style.display = page === 'auth' ? 'flex' : 'block';
 }
 function showTab(tab) {
-  const names = ['predictions','leaderboard','stats','groups','rules','admin'];
+  const names = ['predictions','leaderboard','stats','groups','results','rules','admin'];
   document.querySelectorAll('.nav-tab').forEach((t, i) => t.classList.toggle('active', names[i] === tab));
   showPage(tab);
   if (tab === 'predictions') loadPredictionsPage();
   if (tab === 'leaderboard') loadLeaderboard();
   if (tab === 'stats') loadStats();
   if (tab === 'groups') loadGroups();
+  if (tab === 'results') loadResults();
   if (tab === 'admin') { loadAdminPage(); loadUsers(); }
 }
 function showLoggedIn() {
@@ -1009,6 +1022,74 @@ async function showPlayerHistory(userId, username) {
 }
 
 // ===== GROUPS =====
+// ===== RESULTS =====
+let resultsFilter = 'group';
+
+function setResultsFilter(filter) {
+  resultsFilter = filter;
+  document.getElementById('resultsFilterGroup').classList.toggle('active', filter === 'group');
+  document.getElementById('resultsFilterDay').classList.toggle('active', filter === 'day');
+  renderResults();
+}
+
+let resultsMatches = [];
+
+async function loadResults() {
+  const list = document.getElementById('resultsList');
+  list.innerHTML = '<div class="loading"><div class="spinner"></div>Φόρτωση...</div>';
+
+  const { data: matches } = await sb.from('matches').select('*').eq('is_finished', true).order('match_date');
+  resultsMatches = matches || [];
+
+  if (resultsMatches.length === 0) {
+    list.innerHTML = '<div class="loading">Δεν έχουν ολοκληρωθεί αγώνες ακόμα ⚽</div>';
+    return;
+  }
+
+  // Χρειαζόμαστε τα allPredsByMatch για τα stats bars στις κάρτες
+  if (Object.keys(allPredsByMatch).length === 0) {
+    const { data: allPreds } = await sb.from('predictions').select('match_id,predicted_home,predicted_away');
+    (allPreds||[]).forEach(p => {
+      if (!allPredsByMatch[p.match_id]) allPredsByMatch[p.match_id] = [];
+      allPredsByMatch[p.match_id].push(p);
+    });
+  }
+
+  renderResults();
+}
+
+function renderResults() {
+  const list = document.getElementById('resultsList');
+  if (!list || resultsMatches.length === 0) return;
+
+  let html = '';
+  let grouped = {};
+
+  if (resultsFilter === 'group') {
+    resultsMatches.forEach(m => {
+      const g = m.group_name || 'Άλλοι';
+      if (!grouped[g]) grouped[g] = [];
+      grouped[g].push(m);
+    });
+    for (const [key, gm] of Object.entries(grouped)) {
+      html += `<div class="group-header">ΟΜΙΛΟΣ ${key}</div>`;
+      gm.forEach(m => { html += buildMatchCardHtml(m); });
+    }
+  } else {
+    resultsMatches.forEach(m => {
+      const d = new Date(m.match_date).toLocaleDateString('el-GR', {weekday:'long', day:'2-digit', month:'2-digit'});
+      if (!grouped[d]) grouped[d] = [];
+      grouped[d].push(m);
+    });
+    for (const [key, gm] of Object.entries(grouped)) {
+      html += `<div class="group-header">${key.toUpperCase()}</div>`;
+      gm.forEach(m => { html += buildMatchCardHtml(m); });
+    }
+  }
+
+  list.innerHTML = html;
+}
+
 async function loadGroups() {
   const list = document.getElementById('groupsList');
   list.innerHTML = '<div class="loading"><div class="spinner"></div>Φόρτωση...</div>';
