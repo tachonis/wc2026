@@ -201,6 +201,16 @@
   .welcome-note { font-size:.8rem; color:var(--muted); background:var(--dark2); padding:10px 14px;
     border-radius:8px; margin-bottom:16px; border-left:3px solid var(--gold); text-align:left; }
 
+  /* AWARDS */
+  .award-card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:20px; margin-bottom:18px; }
+  .award-title { font-family:'Bebas Neue',sans-serif; font-size:1.3rem; letter-spacing:2px; color:var(--gold); margin-bottom:2px; }
+  .award-desc { font-size:.82rem; color:var(--muted); margin-bottom:14px; }
+  .award-row { display:grid; grid-template-columns:32px 1fr auto; align-items:center; padding:8px 0; border-bottom:1px solid var(--border); }
+  .award-row:last-child { border-bottom:none; }
+  .award-medal { font-size:1.2rem; text-align:center; }
+  .award-name { font-weight:600; }
+  .award-value { font-family:'Bebas Neue',sans-serif; font-size:1.2rem; color:var(--gold); }
+
   /* GROUPS TABLE */
   .group-table { background:var(--card); border:1px solid var(--border); border-radius:12px; overflow:hidden; margin-bottom:24px; }
   .group-table-header { font-family:'Bebas Neue',sans-serif; font-size:1rem; letter-spacing:3px; color:var(--gold);
@@ -270,6 +280,7 @@
 <div class="nav-tabs" id="navTabs" style="display:none">
   <div class="nav-tab active" onclick="showTab('predictions')">⚽ Προβλέψεις</div>
   <div class="nav-tab" onclick="showTab('leaderboard')">🏆 Βαθμολογία</div>
+  <div class="nav-tab" onclick="showTab('awards')">🏅 Βραβεία</div>
   <div class="nav-tab" onclick="showTab('stats')">📊 Στατιστικά</div>
   <div class="nav-tab" onclick="showTab('groups')">🗂️ Όμιλοι</div>
   <div class="nav-tab" onclick="showTab('results')">📜 Αποτελέσματα</div>
@@ -323,6 +334,7 @@
       <button class="filter-btn active" id="filterGroup" onclick="setFilter('group')">🗂️ Ανά Όμιλο</button>
       <button class="filter-btn" id="filterDay" onclick="setFilter('day')">📅 Ανά Ημέρα</button>
       <button class="filter-btn" id="filterUpcoming" onclick="setFilter('upcoming')">⏱️ Επόμενοι</button>
+      <button class="filter-btn" id="filterKnockout" onclick="setFilter('knockout')">🏆 Knockout</button>
     </div>
     <div id="matchesList"><div class="loading"><div class="spinner"></div>Φόρτωση αγώνων...</div></div>
   </div>
@@ -331,6 +343,10 @@
   <div id="page-leaderboard" style="display:none">
     <div class="section-title">🏆 ΒΑΘΜΟΛΟΓΙΑ</div>
     <div class="section-subtitle">Κατάταξη όλων των παικτών</div>
+    <div class="filter-bar">
+      <button class="filter-btn active" id="lbFilterGeneral" onclick="setLeaderboardFilter('general')">📊 Γενική</button>
+      <button class="filter-btn" id="lbFilterKnockout" onclick="setLeaderboardFilter('knockout')">🏆 Knockout</button>
+    </div>
     <div id="leaderboardList"><div class="loading"><div class="spinner"></div>Φόρτωση...</div></div>
   </div>
 
@@ -357,6 +373,13 @@
       <button class="filter-btn" id="resultsFilterDay" onclick="setResultsFilter('day')">📅 Ανά Ημέρα</button>
     </div>
     <div id="resultsList"><div class="loading"><div class="spinner"></div>Φόρτωση...</div></div>
+  </div>
+
+  <!-- AWARDS -->
+  <div id="page-awards" style="display:none">
+    <div class="section-title">🏅 ΒΡΑΒΕΙΑ</div>
+    <div class="section-subtitle">Οι κορυφαίοι (και οι... λιγότερο κορυφαίοι) σε κάθε κατηγορία</div>
+    <div id="awardsList"><div class="loading"><div class="spinner"></div>Φόρτωση...</div></div>
   </div>
 
   <!-- RULES -->
@@ -523,7 +546,7 @@ function showPage(page) {
   if (el) el.style.display = page === 'auth' ? 'flex' : 'block';
 }
 function showTab(tab) {
-  const names = ['predictions','leaderboard','stats','groups','results','rules','admin'];
+  const names = ['predictions','leaderboard','awards','stats','groups','results','rules','admin'];
   document.querySelectorAll('.nav-tab').forEach((t, i) => t.classList.toggle('active', names[i] === tab));
   showPage(tab);
   if (tab === 'predictions') loadPredictionsPage();
@@ -531,6 +554,7 @@ function showTab(tab) {
   if (tab === 'stats') loadStats();
   if (tab === 'groups') loadGroups();
   if (tab === 'results') loadResults();
+  if (tab === 'awards') loadAwards();
   if (tab === 'admin') { loadAdminPage(); loadUsers(); }
 }
 function showLoggedIn() {
@@ -580,6 +604,7 @@ function setFilter(filter) {
   document.getElementById('filterGroup').classList.toggle('active', filter === 'group');
   document.getElementById('filterDay').classList.toggle('active', filter === 'day');
   document.getElementById('filterUpcoming').classList.toggle('active', filter === 'upcoming');
+  document.getElementById('filterKnockout').classList.toggle('active', filter === 'knockout');
   renderMatches();
 }
 
@@ -591,7 +616,7 @@ function renderMatches() {
   let grouped = {};
 
   if (currentFilter === 'group') {
-    allMatches.forEach(m => {
+    allMatches.filter(m => m.stage === 'group').forEach(m => {
       const g = m.group_name || 'Άλλοι';
       if (!grouped[g]) grouped[g] = [];
       grouped[g].push(m);
@@ -608,6 +633,23 @@ function renderMatches() {
       html = '<div class="loading">Δεν υπάρχουν επόμενοι αγώνες — όλοι έχουν παιχτεί! 🏆</div>';
     } else {
       upcoming.forEach(m => { html += buildMatchCardHtml(m); });
+    }
+  } else if (currentFilter === 'knockout') {
+    const knockout = allMatches
+      .filter(m => m.stage && m.stage !== 'group')
+      .sort((a, b) => new Date(a.match_date) - new Date(b.match_date));
+    if (knockout.length === 0) {
+      html = '<div class="loading">Δεν έχουν προστεθεί ακόμα αγώνες knockout φάσης ⏳</div>';
+    } else {
+      knockout.forEach(m => {
+        const g = m.group_name || 'Knockout';
+        if (!grouped[g]) grouped[g] = [];
+        grouped[g].push(m);
+      });
+      for (const [key, gm] of Object.entries(grouped)) {
+        html += `<div class="group-header">${key.toUpperCase()}</div>`;
+        gm.forEach(m => { html += buildMatchCardHtml(m); });
+      }
     }
   } else {
     allMatches.forEach(m => {
@@ -750,20 +792,59 @@ async function savePrediction(matchId) {
 }
 
 // ===== LEADERBOARD =====
+let leaderboardFilter = 'general';
+
+function setLeaderboardFilter(filter) {
+  leaderboardFilter = filter;
+  document.getElementById('lbFilterGeneral').classList.toggle('active', filter === 'general');
+  document.getElementById('lbFilterKnockout').classList.toggle('active', filter === 'knockout');
+  loadLeaderboard();
+}
+
 async function loadLeaderboard() {
   const list = document.getElementById('leaderboardList');
   list.innerHTML = '<div class="loading"><div class="spinner"></div>Φόρτωση...</div>';
-  const { data: profiles } = await sb.from('profiles').select('*').order('total_points', { ascending: false });
+
+  const { data: profiles } = await sb.from('profiles').select('*');
+
+  let rows;
+  if (leaderboardFilter === 'knockout') {
+    // Υπολογισμός βαθμών ΜΟΝΟ από knockout αγώνες (stage != 'group') — ανά χρήστη, όπως στο showPlayerHistory
+    rows = [];
+    for (const profile of (profiles||[])) {
+      const { data: preds } = await sb.from('predictions')
+        .select('points_earned, matches(stage)')
+        .eq('user_id', profile.id);
+
+      let knockoutTotal = 0;
+      (preds||[]).forEach(p => {
+        if (p.matches?.stage && p.matches.stage !== 'group') {
+          knockoutTotal += (p.points_earned || 0);
+        }
+      });
+
+      rows.push({ id: profile.id, username: profile.username, points: knockoutTotal });
+    }
+    rows.sort((a,b) => b.points - a.points);
+  } else {
+    rows = (profiles||[]).map(p => ({
+      id: p.id,
+      username: p.username,
+      points: p.total_points
+    })).sort((a,b) => b.points - a.points);
+  }
+
+  const title = leaderboardFilter === 'knockout' ? 'ΒΑΘΜΟΙ (KNOCKOUT)' : 'ΒΑΘΜΟΙ';
   let html = `<div class="leaderboard-table">
-    <div class="lb-row header"><div>ΘΕΣΗ</div><div>ΠΑΙΚΤΗΣ</div><div>ΒΑΘΜΟΙ</div></div>`;
-  (profiles||[]).forEach((p,i) => {
+    <div class="lb-row header"><div>ΘΕΣΗ</div><div>ΠΑΙΚΤΗΣ</div><div>${title}</div></div>`;
+  rows.forEach((p,i) => {
     const rc = i===0?'top1':i===1?'top2':i===2?'top3':'';
     const ri = i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1;
     const isMe = currentUser && p.id === currentUser.id;
     html += `<div class="lb-row">
       <div class="lb-rank ${rc}">${ri}</div>
       <div class="lb-name ${isMe?'me':''}" style="cursor:pointer;text-decoration:underline dotted" onclick="showPlayerHistory('${p.id}','${p.username}')">${p.username}${isMe?' (εσύ)':''}</div>
-      <div class="lb-points">${p.total_points}</div>
+      <div class="lb-points">${p.points}</div>
     </div>`;
   });
   list.innerHTML = html + '</div>';
@@ -1112,6 +1193,71 @@ function renderResults() {
       gm.forEach(m => { html += buildMatchCardHtml(m); });
     }
   }
+
+  list.innerHTML = html;
+}
+
+// ===== AWARDS =====
+async function loadAwards() {
+  const list = document.getElementById('awardsList');
+  list.innerHTML = '<div class="loading"><div class="spinner"></div>Φόρτωση...</div>';
+
+  const { data: profiles } = await sb.from('profiles').select('id, username');
+
+  const stats = []; // [{ username, exact, correct, total }]
+
+  // Για κάθε χρήστη, τραβάμε τις προβλέψεις του ξεχωριστά (ίδια λογική με showPlayerHistory που δουλεύει σωστά)
+  for (const profile of (profiles||[])) {
+    const { data: preds } = await sb.from('predictions')
+      .select('points_earned, matches(is_finished)')
+      .eq('user_id', profile.id);
+
+    let exact = 0, correct = 0, total = 0;
+    (preds||[]).forEach(p => {
+      if (!p.matches?.is_finished) return;
+      total++;
+      if (p.points_earned === 5) exact++;
+      else if (p.points_earned === 2) correct++;
+    });
+
+    if (total > 0) {
+      stats.push({
+        username: profile.username,
+        exact, correct, total,
+        exactPct: Math.round((exact / total) * 100),
+        correctPct: Math.round((correct / total) * 100)
+      });
+    }
+  }
+
+  const arr = stats;
+
+  const topExact = [...arr].sort((a,b) => b.exactPct - a.exactPct).slice(0,3);
+  const topCorrect = [...arr].sort((a,b) => b.correctPct - a.correctPct).slice(0,3);
+  const leastExact = [...arr].sort((a,b) => a.exactPct - b.exactPct).slice(0,3);
+  const leastCorrect = [...arr].sort((a,b) => a.correctPct - b.correctPct).slice(0,3);
+
+  function buildAwardCard(title, desc, rows, pctKey, countKey) {
+    let html = `<div class="award-card">
+      <div class="award-title">${title}</div>
+      <div class="award-desc">${desc}</div>`;
+    rows.forEach((r, i) => {
+      const medal = i===0?'🥇':i===1?'🥈':'🥉';
+      html += `<div class="award-row">
+        <div class="award-medal">${medal}</div>
+        <div class="award-name">${r.username}</div>
+        <div class="award-value">${r[pctKey]}% <span style="font-size:.7rem;color:var(--muted);font-family:'Outfit',sans-serif">(${r[countKey]}/${r.total})</span></div>
+      </div>`;
+    });
+    html += '</div>';
+    return html;
+  }
+
+  let html = '';
+  html += buildAwardCard('🎯 Ο ΠΡΟΦΗΤΗΣ', 'Μεγαλύτερο ποσοστό ακριβών σκορ', topExact, 'exactPct', 'exact');
+  html += buildAwardCard('✅ Ο MR. 1-Χ-2', 'Μεγαλύτερο ποσοστό σωστών αποτελεσμάτων (νίκη/ισοπαλία/ήττα)', topCorrect, 'correctPct', 'correct');
+  html += buildAwardCard('🙈 Ο ΑΤΥΧΟΣ', 'Μικρότερο ποσοστό ακριβών σκορ', leastExact, 'exactPct', 'exact');
+  html += buildAwardCard('🎲 Ο ΚΟΥΒΑΝΟΣ', 'Μικρότερο ποσοστό σωστών αποτελεσμάτων', leastCorrect, 'correctPct', 'correct');
 
   list.innerHTML = html;
 }
