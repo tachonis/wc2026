@@ -1220,12 +1220,17 @@ async function loadAwards() {
       else if (p.points_earned === 2) correct++;
     });
 
+    // correctOutcome = σωστό αποτέλεσμα (2άρια + 5άρια, αφού το 5άρι σημαίνει και σωστό αποτέλεσμα)
+    const correctOutcome = exact + correct;
+    const correctOutcomePct = total > 0 ? Math.round((correctOutcome / total) * 100) : 0;
+
     if (total > 0) {
       stats.push({
         username: profile.username,
-        exact, correct, total,
+        exact, correct, correctOutcome, total,
         exactPct: Math.round((exact / total) * 100),
-        correctPct: Math.round((correct / total) * 100)
+        correctPct: Math.round((correct / total) * 100),
+        correctOutcomePct
       });
     }
   }
@@ -1233,9 +1238,9 @@ async function loadAwards() {
   const arr = stats;
 
   const topExact = [...arr].sort((a,b) => b.exactPct - a.exactPct).slice(0,3);
-  const topCorrect = [...arr].sort((a,b) => b.correctPct - a.correctPct).slice(0,3);
+  const topCorrect = [...arr].sort((a,b) => b.correctOutcomePct - a.correctOutcomePct).slice(0,3);
   const leastExact = [...arr].sort((a,b) => a.exactPct - b.exactPct).slice(0,3);
-  const leastCorrect = [...arr].sort((a,b) => a.correctPct - b.correctPct).slice(0,3);
+  const leastCorrect = [...arr].sort((a,b) => a.correctOutcomePct - b.correctOutcomePct).slice(0,3);
 
   function buildAwardCard(title, desc, rows, pctKey, countKey) {
     let html = `<div class="award-card">
@@ -1255,9 +1260,9 @@ async function loadAwards() {
 
   let html = '';
   html += buildAwardCard('🎯 Ο ΠΡΟΦΗΤΗΣ', 'Μεγαλύτερο ποσοστό ακριβών σκορ', topExact, 'exactPct', 'exact');
-  html += buildAwardCard('✅ Ο MR. 1-Χ-2', 'Μεγαλύτερο ποσοστό σωστών αποτελεσμάτων (νίκη/ισοπαλία/ήττα)', topCorrect, 'correctPct', 'correct');
+  html += buildAwardCard('✅ Ο MR. 1-Χ-2', 'Μεγαλύτερο ποσοστό σωστών αποτελεσμάτων (νίκη/ισοπαλία/ήττα)', topCorrect, 'correctOutcomePct', 'correctOutcome');
   html += buildAwardCard('🙈 Ο ΑΤΥΧΟΣ', 'Μικρότερο ποσοστό ακριβών σκορ', leastExact, 'exactPct', 'exact');
-  html += buildAwardCard('🎲 Ο ΚΟΥΒΑΝΟΣ', 'Μικρότερο ποσοστό σωστών αποτελεσμάτων', leastCorrect, 'correctPct', 'correct');
+  html += buildAwardCard('🎲 Ο ΚΟΥΒΑΝΟΣ', 'Μικρότερο ποσοστό σωστών αποτελεσμάτων', leastCorrect, 'correctOutcomePct', 'correctOutcome');
 
   list.innerHTML = html;
 }
