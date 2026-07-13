@@ -809,29 +809,43 @@ async function loadLeaderboard() {
 
   let rows;
   if (leaderboardFilter === 'knockout') {
-    // Υπολογισμός βαθμών ΜΟΝΟ από knockout αγώνες (stage != 'group') — ανά χρήστη, όπως στο showPlayerHistory
     rows = [];
     for (const profile of (profiles||[])) {
       const { data: preds } = await sb.from('predictions')
         .select('points_earned, matches(stage)')
         .eq('user_id', profile.id);
 
-      let knockoutTotal = 0;
+      let knockoutTotal = 0, exact = 0, correct = 0;
       (preds||[]).forEach(p => {
         if (p.matches?.stage && p.matches.stage !== 'group') {
           knockoutTotal += (p.points_earned || 0);
+          if (p.points_earned === 5) exact++;
+          else if (p.points_earned === 2) correct++;
         }
       });
 
-      rows.push({ id: profile.id, username: profile.username, points: knockoutTotal });
+      rows.push({ id: profile.id, username: profile.username, points: knockoutTotal, exact, correct });
     }
-    rows.sort((a,b) => b.points - a.points);
+    // Tiebreaker: 1) βαθμοί, 2) ακριβή σκορ (5άρια), 3) σωστά αποτελέσματα (2άρια)
+    rows.sort((a,b) => b.points - a.points || b.exact - a.exact || b.correct - a.correct);
   } else {
-    rows = (profiles||[]).map(p => ({
-      id: p.id,
-      username: p.username,
-      points: p.total_points
-    })).sort((a,b) => b.points - a.points);
+    rows = [];
+    for (const profile of (profiles||[])) {
+      const { data: preds } = await sb.from('predictions')
+        .select('points_earned, matches(is_finished)')
+        .eq('user_id', profile.id);
+
+      let exact = 0, correct = 0;
+      (preds||[]).forEach(p => {
+        if (!p.matches?.is_finished) return;
+        if (p.points_earned === 5) exact++;
+        else if (p.points_earned === 2) correct++;
+      });
+
+      rows.push({ id: profile.id, username: profile.username, points: profile.total_points, exact, correct });
+    }
+    // Tiebreaker: 1) βαθμοί, 2) ακριβή σκορ (5άρια), 3) σωστά αποτελέσματα (2άρια)
+    rows.sort((a,b) => b.points - a.points || b.exact - a.exact || b.correct - a.correct);
   }
 
   const title = leaderboardFilter === 'knockout' ? 'ΒΑΘΜΟΙ (KNOCKOUT)' : 'ΒΑΘΜΟΙ';
